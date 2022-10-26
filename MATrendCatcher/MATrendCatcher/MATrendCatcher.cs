@@ -251,7 +251,7 @@ namespace cAlgo.Robots
                     this.ProfitInPips = (Convert.ToDouble(RiskPips) * this.RewardToRisk);
                     Print("Reward-To-Risk Pips is {0}",this.ProfitInPips.ToString());
                     
-                    SL = Convert.ToDouble(RiskPips / 2);
+                    SL = Convert.ToDouble(RiskPips);
                     this.ProfitInPips = (Convert.ToDouble(RiskPips) * this.RewardToRisk);
                     
                     //Stop();
