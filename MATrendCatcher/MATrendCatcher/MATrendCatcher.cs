@@ -41,7 +41,7 @@ namespace cAlgo.Robots
         public int ScaleFactor { get; set; }
 
 
-        [Parameter("Pips Threshold",Group ="Targets", DefaultValue = 2)]
+        [Parameter("Pips Threshold",Group ="Targets", DefaultValue = 5)]
         public int PipsThreshold { get; set; }
 
 
@@ -57,16 +57,16 @@ namespace cAlgo.Robots
         [Parameter("Percentile %",Group="Analysis", DefaultValue = 55)]
         public double Percentile { get; set; }
 
-        [Parameter("ProfitInPips",Group ="Targets", DefaultValue = 100)]
+        [Parameter("ProfitInPips",Group ="Targets", DefaultValue = 500)]
         public double ProfitInPips { get; set; }
 
-        [Parameter("Pips to Trigger SL",Group ="Targets", DefaultValue = 25)]
+        [Parameter("Pips to Trigger SL",Group ="Targets", DefaultValue = 10)]
         public double PipsToTriggerSL { get; set; }
 
-        [Parameter("Percentage Drawdown",Group ="Targets", DefaultValue = 0.015)]
+        [Parameter("Percentage Drawdown",Group ="Targets", DefaultValue = 0.10)]
         public double PercentageDrawdown { get; set; }
 
-        [Parameter("Trailing Stop Loss",Group ="Targets", DefaultValue = 15)]
+        [Parameter("Trailing Stop Loss",Group ="Targets", DefaultValue = 5)]
         public double TrailingStopLoss { get; set; }
 
         [Parameter("Reward-To-Risk", Group ="Targets",DefaultValue = 1.5)]
@@ -76,7 +76,7 @@ namespace cAlgo.Robots
         public int RSIPeriod { get; set; }
 
         public enum EnumVolume{Thousand,TenThousand,HundredThousand};
-        [Parameter("Trading Volume",Group = "Trading Lots", DefaultValue =EnumVolume.TenThousand)]
+        [Parameter("Trading Volume",Group = "Trading Lots", DefaultValue =EnumVolume.Thousand)]
         public EnumVolume EnumV{get;set;}
 
         System.Timers.Timer oTimer = null;
@@ -404,24 +404,33 @@ namespace cAlgo.Robots
 
         private void ManageTrailingLoss(){
             //manages trailing loss for a position
-            var position = Positions.Find("TrendCatcher",SymbolName);
-            if (position == null){
+            var positions = Positions.FindAll("TrendCatcher",SymbolName);
+            
+            if (positions.Count() == 0){
                 return;
             }
             
-            if (position.Pips >= this.PipsToTriggerSL){
-                if (position.TradeType == TradeType.Buy){
-                    var newSLPrice = Symbol.Ask - (Symbol.PipSize * this.TrailingStopLoss);
-                    if (newSLPrice > position.StopLoss){
-                        ModifyPosition(position,newSLPrice,position.TakeProfit);
+            foreach(var position in positions){
+                if (position.Pips >= this.PipsToTriggerSL)
+                {
+                    if (position.TradeType == TradeType.Buy){
+                        var newSLPrice = Symbol.Ask - (Symbol.PipSize * this.TrailingStopLoss);
+                        if (newSLPrice > position.StopLoss){
+                            ModifyPosition(position,newSLPrice,position.TakeProfit);
+                        }
+                    }
+                    else
+                    {
+                        var newSLPrice = Symbol.Bid + (Symbol.PipSize * this.TrailingStopLoss);
+                        if (newSLPrice < position.StopLoss){
+                            ModifyPosition(position,newSLPrice,position.TakeProfit);    
+                        }
                     }
                 }
-                else
-                {
-                    var newSLPrice = Symbol.Bid + (Symbol.PipSize * this.TrailingStopLoss);
-                    if (newSLPrice < position.StopLoss){
-                        ModifyPosition(position,newSLPrice,position.TakeProfit);    
-                    }
+                
+                //close position if profit target is reached
+                if (position.Pips >= this.ProfitInPips){
+                    ClosePosition(position);
                 }
             }
         }
